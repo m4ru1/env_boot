@@ -1,0 +1,187 @@
+version: '3.8'
+
+networks:
+  env_boot_net:
+    driver: bridge
+
+services:
+  #--------------------------------------------------------------------------
+  # MySQL Master-Slave
+  #--------------------------------------------------------------------------
+  mysql-master:
+    image: mysql:8.0
+    container_name: mysql-master
+    restart: always
+    env_file:
+      - ./env
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/master/conf.d:/etc/mysql/conf.d
+      - ./docker/mysql/master/initdb.d:/docker-entrypoint-initdb.d
+      - mysql-master-data:/var/lib/mysql
+    networks:
+      - env_boot_net
+
+  mysql-slave:
+    image: mysql:8.0
+    container_name: mysql-slave
+    restart: always
+    env_file:
+      - ./env
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./docker/mysql/slave/conf.d:/etc/mysql/conf.d
+      - ./docker/mysql/slave/init.sh:/docker-entrypoint-initdb.d/init.sh
+      - mysql-slave-data:/var/lib/mysql
+    depends_on:
+      - mysql-master
+    command: >
+      bash -c "chmod +x /docker-entrypoint-initdb.d/init.sh && /docker-entrypoint-initdb.d/init.sh"
+    networks:
+      - env_boot_net
+
+  #--------------------------------------------------------------------------
+  # Redis Sentinel Cluster
+  #--------------------------------------------------------------------------
+  redis-master:
+    image: redis:7.0
+    container_name: redis-master
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis/master/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-master-data:/data
+    networks:
+      - env_boot_net
+
+  redis-replica-1:
+    image: redis:7.0
+    container_name: redis-replica-1
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./docker/redis/replica/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-replica-1-data:/data
+    depends_on:
+      - redis-master
+    networks:
+      - env_boot_net
+
+  redis-replica-2:
+    image: redis:7.0
+    container_name: redis-replica-2
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    ports:
+      - "6381:6379"
+    volumes:
+      - ./docker/redis/replica/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis-replica-2-data:/data
+    depends_on:
+      - redis-master
+    networks:
+      - env_boot_net
+  
+  sentinel-1:
+    image: redis:7.0
+    container_name: sentinel-1
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./docker/redis/sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - env_boot_net
+
+  sentinel-2:
+    image: redis:7.0
+    container_name: sentinel-2
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    ports:
+      - "26380:26379"
+    volumes:
+      - ./docker/redis/sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - env_boot_net
+
+  sentinel-3:
+    image: redis:7.0
+    container_name: sentinel-3
+    restart: always
+    env_file:
+      - ./env
+    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    ports:
+      - "26381:26379"
+    volumes:
+      - ./docker/redis/sentinel/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - env_boot_net
+
+  #--------------------------------------------------------------------------
+  # RocketMQ
+  #--------------------------------------------------------------------------
+  rmqnamesrv:
+    image: apache/rocketmq:5.2.0
+    container_name: rmqnamesrv
+    restart: always
+    ports:
+      - "9876:9876"
+    command: sh mqnamesrv
+    networks:
+      - env_boot_net
+
+  rmqbroker:
+    image: apache/rocketmq:5.2.0
+    container_name: rmqbroker
+    restart: always
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    volumes:
+      - ./docker/rocketmq/broker/conf/broker.conf:/home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+      - ./docker/rocketmq/broker/conf/plain_acl.yml:/home/rocketmq/rocketmq-5.2.0/conf/plain_acl.yml
+      - ./docker/rocketmq/logs:/home/rocketmq/logs
+      - ./docker/rocketmq/store:/home/rocketmq/store
+    depends_on:
+      - rmqnamesrv
+    command: sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+    networks:
+      - env_boot_net
+
+volumes:
+  mysql-master-data:
+  mysql-slave-data:
+  redis-master-data:
+  redis-replica-1-data:
+  redis-replica-2-data: 

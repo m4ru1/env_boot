@@ -1,0 +1,40 @@
+#--------------------------------------------------------------------------
+# General
+#--------------------------------------------------------------------------
+COMPOSE_PROJECT_NAME=env_boot
+
+#--------------------------------------------------------------------------
+# MySQL
+#--------------------------------------------------------------------------
+# root password for mysql
+MYSQL_ROOT_PASSWORD=root
+# mysql user
+MYSQL_USER=user
+# mysql user password
+MYSQL_PASSWORD=password
+# mysql replication user
+MYSQL_REPLICATION_USER=repl
+# mysql replication user password
+MYSQL_REPLICATION_PASSWORD=password
+
+#--------------------------------------------------------------------------
+# Redis
+#--------------------------------------------------------------------------
+# redis password
+REDIS_PASSWORD=password
+# redis master name
+REDIS_MASTER_NAME=mymaster
+# redis sentinel port
+REDIS_SENTINEL_PORT=26379
+
+#--------------------------------------------------------------------------
+# RocketMQ
+#--------------------------------------------------------------------------
+# rocketmq nameserver port
+ROCKETMQ_NAMESRV_PORT=9876
+# rocketmq broker port
+ROCKETMQ_BROKER_PORT=10911
+# rocketmq access key
+ROCKETMQ_ACCESS_KEY=rocketmq
+# rocketmq secret key
+ROCKETMQ_SECRET_KEY=rocketmq2024 

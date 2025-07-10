@@ -1,0 +1,40 @@
+# This is a comment
+# acl config file format is as following:
+#
+# globalWhiteRemoteAddresses:
+# - 10.10.103.*
+# - 192.168.0.*
+#
+# accounts:
+# - accessKey: rocketmq
+#   secretKey: 12345678
+#   whiteRemoteAddress: 10.10.103.1
+#   admin: false
+#   defaultTopicPerm: DENY
+#   defaultGroupPerm: DENY
+#   topicPerms:
+#   - topicA=SUB
+#   - topicB=PUB|SUB
+#   groupPerms:
+#   # groupA is sub group
+#   - groupA=SUB
+#   # groupB is pub group
+#   - groupB=PUB
+#   # groupC is pub&sub group
+#   - groupC=PUB|SUB
+#
+# - accessKey: admin
+#   secretKey: 87654321
+#   whiteRemoteAddress: 10.10.103.2
+#   admin: true
+
+globalWhiteRemoteAddresses:
+- 127.0.0.1
+- 172.17.0.*
+- 10.0.0.0-10.255.255.255
+- 172.16.0.0-172.31.255.255
+- 192.168.0.0-192.168.255.255
+accounts:
+- accessKey: ${ROCKETMQ_ACCESS_KEY}
+  secretKey: ${ROCKETMQ_SECRET_KEY}
+  admin: true 
