@@ -19,12 +19,14 @@ done
 echo "Slave and Master are ready, configuring replication."
 
 mysql -u root -p"${MYSQL_ROOT_PASSWORD}" -e "
+STOP REPLICA;
+RESET REPLICA ALL;
 CHANGE MASTER TO
   MASTER_HOST='mysql-master',
   MASTER_USER='${MYSQL_REPLICATION_USER}',
   MASTER_PASSWORD='${MYSQL_REPLICATION_PASSWORD}',
   MASTER_AUTO_POSITION=1;
-START SLAVE;
+START REPLICA;
 "
 
 echo "Replication configured."

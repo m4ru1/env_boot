@@ -51,7 +51,7 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    command: bash -c "perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/redis.conf > /data/redis.conf && redis-server /data/redis.conf"
     ports:
       - "6379:6379"
     volumes:
@@ -66,7 +66,7 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    command: bash -c "perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/redis.conf > /data/redis.conf && redis-server /data/redis.conf"
     ports:
       - "6380:6379"
     volumes:
@@ -83,7 +83,7 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    command: bash -c "perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/redis.conf > /data/redis.conf && redis-server /data/redis.conf"
     ports:
       - "6381:6379"
     volumes:
@@ -100,7 +100,16 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    command: >
+      bash -c "
+        until redis-cli -h redis-master -a ${REDIS_PASSWORD} ping | grep -q PONG; do
+          echo 'Waiting for redis-master...'
+          sleep 1
+        done;
+        echo 'Redis master is ready. Starting sentinel...';
+        perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/sentinel.conf > /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
     ports:
       - "26379:26379"
     volumes:
@@ -118,7 +127,16 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    command: >
+      bash -c "
+        until redis-cli -h redis-master -a ${REDIS_PASSWORD} ping | grep -q PONG; do
+          echo 'Waiting for redis-master...'
+          sleep 1
+        done;
+        echo 'Redis master is ready. Starting sentinel...';
+        perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/sentinel.conf > /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
     ports:
       - "26380:26379"
     volumes:
@@ -136,7 +154,16 @@ services:
     restart: always
     env_file:
       - ./env
-    command: /bin/sh -c "redis-sentinel /usr/local/etc/redis/sentinel.conf"
+    command: >
+      bash -c "
+        until redis-cli -h redis-master -a ${REDIS_PASSWORD} ping | grep -q PONG; do
+          echo 'Waiting for redis-master...'
+          sleep 1
+        done;
+        echo 'Redis master is ready. Starting sentinel...';
+        perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/sentinel.conf > /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
     ports:
       - "26381:26379"
     volumes:
@@ -170,12 +197,24 @@ services:
       - "10909:10909"
     volumes:
       - ./docker/rocketmq/broker/conf/broker.conf:/home/rocketmq/rocketmq-5.2.0/conf/broker.conf
-      - ./docker/rocketmq/broker/conf/plain_acl.yml:/home/rocketmq/rocketmq-5.2.0/conf/plain_acl.yml
+      - ./docker/rocketmq/broker/conf/plain_acl.yml:/home/rocketmq/rocketmq-5.2.0/conf/plain_acl.yml.template
       - ./docker/rocketmq/logs:/home/rocketmq/logs
       - ./docker/rocketmq/store:/home/rocketmq/store
     depends_on:
       - rmqnamesrv
-    command: sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+    command: >
+      bash -c "
+        until nc -z rmqnamesrv 9876; do
+          echo 'Waiting for rmqnamesrv...';
+          sleep 2;
+        done;
+        echo 'Name server is ready.';
+        
+        perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /home/rocketmq/rocketmq-5.2.0/conf/plain_acl.yml.template > /home/rocketmq/rocketmq-5.2.0/conf/plain_acl.yml;
+        
+        echo 'Starting broker...';
+        sh mqbroker -n rmqnamesrv:9876 -c /home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+      "
     networks:
       - env_boot_net
 
