@@ -2,12 +2,12 @@
 #
 # This script provides a simple way to manage the Docker Compose environment.
 # It should be run from the project's root directory.
-# Example: ./scripts/manage.sh up
+# Example (simple mode): ./scripts/manage.sh up
+# Example (full mode):   ./scripts/manage.sh up full
 
 set -e
 
 # --- Configuration ---
-# Get the directory of this script to run commands from the project root.
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
 
@@ -15,45 +15,60 @@ PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 {up|down|restart|clean|logs|ps}"
+    echo "Usage: $0 {up|down|restart|clean|logs|ps} [profile]"
     echo "Commands:"
-    echo "  up       - Start all services in detached mode."
-    echo "  down     - Stop all services."
-    echo "  restart  - Stop and then start all services."
-    echo "  clean    - Stop and remove all containers, networks, and volumes."
-    echo "  logs [service] - Follow logs. Optional: specify a service name."
-    echo "  ps       - List all running containers for this project."
+    echo "  up [profile]     - Start services. Optional profile: 'full'."
+    echo "  down             - Stop all services."
+    echo "  restart [profile]- Restart services. Optional profile: 'full'."
+    echo "  clean            - Stop and remove all containers, networks, and volumes."
+    echo "  logs [service]   - Follow logs. Optional: specify a service name."
+    echo "  ps [profile]     - List running containers. Optional profile: 'full'."
+    echo ""
+    echo "Examples:"
+    echo "  ./scripts/manage.sh up        # Starts the simple environment"
+    echo "  ./scripts/manage.sh up full   # Starts the full environment (with replication and sentinels)"
     exit 1
 }
 
 # --- Main Logic ---
-
-# Navigate to the project root directory
 cd "$PROJECT_ROOT"
 
-# Check if a command was provided
 if [ -z "$1" ]; then
     usage
 fi
 
-case "$1" in
+COMMAND=$1
+PROFILE_ARG=""
+
+# Check if a profile argument is provided for relevant commands
+if [[ "$1" == "up" || "$1" == "restart" || "$1" == "ps" ]] && [ -n "$2" ]; then
+    if [ "$2" == "full" ]; then
+        PROFILE_ARG="--profile full"
+        echo "Running with 'full' profile..."
+    else
+        echo "Warning: Unknown profile '$2'. Ignoring."
+    fi
+fi
+
+case "$COMMAND" in
     up)
-        echo "Starting all services..."
-        docker-compose up -d
-        echo "All services started."
-        docker-compose ps
+        echo "Starting services..."
+        docker-compose $PROFILE_ARG up -d
+        echo "Services started."
+        docker-compose $PROFILE_ARG ps
         ;;
     down)
-        echo "Stopping all services..."
+        echo "Stopping all services (including all profiles)..."
+        # 'down' command does not need profile flag to stop all services
         docker-compose down
         echo "All services stopped."
         ;;
     restart)
-        echo "Restarting all services..."
-        docker-compose down
-        docker-compose up -d
-        echo "All services restarted."
-        docker-compose ps
+        echo "Restarting services..."
+        docker-compose $PROFILE_ARG down
+        docker-compose $PROFILE_ARG up -d
+        echo "Services restarted."
+        docker-compose $PROFILE_ARG ps
         ;;
     clean)
         echo "WARNING: This will stop and REMOVE ALL containers, networks, and data volumes."
@@ -61,6 +76,7 @@ case "$1" in
         echo
         if [[ "$REPLY" =~ ^[Yy]$ ]]; then
             echo "Cleaning up the environment..."
+            # --all-profiles is not a valid flag, down --volumes cleans all
             docker-compose down --volumes --remove-orphans
             echo "Environment cleaned successfully."
         else
@@ -70,10 +86,10 @@ case "$1" in
     logs)
         shift # Remove the 'logs' argument
         echo "Following logs... (Press Ctrl+C to stop)"
-        docker-compose logs -f "$@"
+        docker-compose logs -f "${@:2}" # Pass remaining args
         ;;
     ps)
-        docker-compose ps
+        docker-compose $PROFILE_ARG ps
         ;;
     *)
         echo "Error: Unknown command '$1'"

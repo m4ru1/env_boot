@@ -6,8 +6,7 @@ networks:
 
 services:
   #--------------------------------------------------------------------------
-  # MySQL (Master/Standalone)
-  # This is the base MySQL instance, always active.
+  # MySQL Master-Slave
   #--------------------------------------------------------------------------
   mysql-master:
     image: mysql:8.0
@@ -24,14 +23,10 @@ services:
     networks:
       - env_boot_net
 
-  #--------------------------------------------------------------------------
-  # MySQL Slave (Full Profile Only)
-  #--------------------------------------------------------------------------
   mysql-slave:
     image: mysql:8.0
     container_name: mysql-slave
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     ports:
@@ -48,8 +43,7 @@ services:
       - env_boot_net
 
   #--------------------------------------------------------------------------
-  # Redis (Master/Standalone)
-  # This is the base Redis instance, always active.
+  # Redis Sentinel Cluster
   #--------------------------------------------------------------------------
   redis-master:
     image: redis:7.0
@@ -66,14 +60,10 @@ services:
     networks:
       - env_boot_net
 
-  #--------------------------------------------------------------------------
-  # Redis Replicas (Full Profile Only)
-  #--------------------------------------------------------------------------
   redis-replica-1:
     image: redis:7.0
     container_name: redis-replica-1
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     command: bash -c "perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/redis.conf > /data/redis.conf && redis-server /data/redis.conf"
@@ -91,7 +81,6 @@ services:
     image: redis:7.0
     container_name: redis-replica-2
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     command: bash -c "perl -p -e 's/\\$${(\\w+)}/$$ENV{$$1}/eg' < /usr/local/etc/redis/redis.conf > /data/redis.conf && redis-server /data/redis.conf"
@@ -105,14 +94,10 @@ services:
     networks:
       - env_boot_net
   
-  #--------------------------------------------------------------------------
-  # Redis Sentinels (Full Profile Only)
-  #--------------------------------------------------------------------------
   sentinel-1:
     image: redis:7.0
     container_name: sentinel-1
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     command: >
@@ -140,7 +125,6 @@ services:
     image: redis:7.0
     container_name: sentinel-2
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     command: >
@@ -168,7 +152,6 @@ services:
     image: redis:7.0
     container_name: sentinel-3
     restart: always
-    profiles: ["full"]
     env_file:
       - ./env
     command: >
@@ -194,7 +177,6 @@ services:
 
   #--------------------------------------------------------------------------
   # RocketMQ
-  # These are base services, always active.
   #--------------------------------------------------------------------------
   rmqnamesrv:
     image: apache/rocketmq:5.2.0
@@ -210,8 +192,6 @@ services:
     image: apache/rocketmq:5.2.0
     container_name: rmqbroker
     restart: always
-    env_file:
-      - ./env
     ports:
       - "10911:10911"
       - "10909:10909"

@@ -16,9 +16,9 @@ OUTPUT_FILE="env_boot_images.tar.gz"
 cd "$PROJECT_ROOT"
 
 echo "Parsing docker-compose.yml to find all required images..."
-# Use 'docker-compose config' to get the final configuration with variables substituted.
-# Then grep for 'image:' and awk to extract the image name.
-IMAGES=$(docker-compose config | grep 'image:' | awk '{print $2}')
+# Use 'docker-compose config' with the 'full' profile to ensure all images
+# from both simple and full modes are included.
+IMAGES=$(docker-compose --profile full config | grep 'image:' | awk '{print $2}')
 
 if [ -z "$IMAGES" ]; then
     echo "Error: No images found in docker-compose.yml. Exiting."
